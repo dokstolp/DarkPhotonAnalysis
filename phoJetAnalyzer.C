@@ -7,21 +7,24 @@
 using namespace std;
 
 int main(int argc, const char* argv[]){
-	const char* pileupfile = argv[1];
+//	const char* pileupfile = argv[1];
+//	pileFile = argv[1];	
 	int isMonteCarlo = atoi(argv[2]);
 	phoJetAnalyzer t(argv[1],argv[3]);
-	t.Loop(isMonteCarlo,pileupfile);
+	t.Loop(isMonteCarlo);//,pileFile);
 	return 0;
 }
 
-void phoJetAnalyzer::Loop(int isMonteCarlo, const char* pileupfile){
+//void phoJetAnalyzer::Loop(int isMonteCarlo, const char* pileupfile){
+void phoJetAnalyzer::Loop(int isMonteCarlo){//, const char* pileupfile){
 	bool isMC = to_bool(isMonteCarlo);
-	TString pileFile = pileupfile;
+//	TString pileFile = pileupfile;
 	if(isMC){
 		TFile *f2 = TFile::Open("/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/forPileup/data.root");
 		TH1F* dataPU = (TH1F*)f2->Get("histo");
 		TString dir = "/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/forPileup/";
-		TFile *fmc = TFile::Open(dir+pileupfile+".root");
+		//TFile *fmc = TFile::Open(dir+pileupfile+".root");
+		TFile *fmc = TFile::Open(dir+pileFile+".root");
 		TH1F* mcPU = (TH1F*)fmc->Get("histo");
 		for(int i=0; i<60; i++){
 			MCpileup.push_back(mcPU->GetBinContent(i+1));
@@ -94,7 +97,7 @@ void phoJetAnalyzer::Loop(int isMonteCarlo, const char* pileupfile){
 			(phoEt->size()<1) ? TrigPhoton_pt = 0.0 : TrigPhoton_pt = phoEt->at(0);
 		} 
 		treeT->Fill();
-		//SetSystematics(run);
+//		SetSystematics();
 		bool phoIdDecision = MediumPhotonIdDecision(pho_index);
             	if(pho_index>=0) jetmultiplicity = JetDecision(pho_index,jet_index);
 	        if(phoIdDecision!=true) continue;
@@ -542,7 +545,7 @@ double phoJetAnalyzer::EAElectronphoton(double eta){
 }
 
 
-double phoJetAnalyzer::passAnalysisCuts(TString run, int jetsystem, int phosystem){
+double phoJetAnalyzer::passAnalysisCuts(int jetsystem, int phosystem){
 	double rets = 0.0;
 	double temp_dR = 99999.9;
 	bool isOverlap=false;
@@ -570,7 +573,7 @@ double phoJetAnalyzer::passAnalysisCuts(TString run, int jetsystem, int phosyste
 				   && DeltaR(jetEta->at(j),phoEta->at(i),jetPhi->at(j),phoPhi->at(i)) > 0.5
 				   && (jetPt->at(j)*jetScale[jetsystem])>=170.0 && fabs(jetEta->at(j))<2.4){
 					if(NConstituents(j,211,10.)<3)
-					if(run.Contains("qcd")) isOverlap = isPhoJetOverlap(i);
+					if(pileFile.Contains("qcd")) isOverlap = isPhoJetOverlap(i);
 					for(int k=0;k<mcPID->size();k++){
 						if(mcPID->at(i) == 22 && mcStatus->at(i) == 1 && mcPt->at(i) > 100){
 							double delR = DeltaR(mcEta->at(k)
@@ -581,7 +584,7 @@ double phoJetAnalyzer::passAnalysisCuts(TString run, int jetsystem, int phosyste
 						}
 					}
 					rets = event_weight*(!isOverlap);
-					if(run=="dipho") rets = (!isOverlap)*event_weight*(temp_dR<0.1);
+					if(pileFile=="dipho") rets = (!isOverlap)*event_weight*(temp_dR<0.1);
 					if(rets>0) return rets;
 				}
 			}
@@ -590,19 +593,19 @@ double phoJetAnalyzer::passAnalysisCuts(TString run, int jetsystem, int phosyste
 	return 0.0;
 }
 
-void phoJetAnalyzer::SetSystematics(TString run){
-	Jet_JEC_u += passAnalysisCuts(run,1,0);
-	Jet_JEC_d += passAnalysisCuts(run,2,0);
-	Jet_Res_u += passAnalysisCuts(run,3,0);
-	Jet_Res_d += passAnalysisCuts(run,4,0);
-	Pho_Sta_u += passAnalysisCuts(run,0,1);
-	Pho_Sta_d += passAnalysisCuts(run,0,2);
-	Pho_Sys_u += passAnalysisCuts(run,0,3);
-	Pho_Sys_d += passAnalysisCuts(run,0,4);
-	Pho_Gan_u += passAnalysisCuts(run,0,5);
-	Pho_Gan_d += passAnalysisCuts(run,0,6);
-	Pho_Res_u += passAnalysisCuts(run,0,7);
-	Pho_Res_d += passAnalysisCuts(run,0,8);
+void phoJetAnalyzer::SetSystematics(){
+	Jet_JEC_u += passAnalysisCuts(1,0);
+	Jet_JEC_d += passAnalysisCuts(2,0);
+	Jet_Res_u += passAnalysisCuts(3,0);
+	Jet_Res_d += passAnalysisCuts(4,0);
+	Pho_Sta_u += passAnalysisCuts(0,1);
+	Pho_Sta_d += passAnalysisCuts(0,2);
+	Pho_Sys_u += passAnalysisCuts(0,3);
+	Pho_Sys_d += passAnalysisCuts(0,4);
+	Pho_Gan_u += passAnalysisCuts(0,5);
+	Pho_Gan_d += passAnalysisCuts(0,6);
+	Pho_Res_u += passAnalysisCuts(0,7);
+	Pho_Res_d += passAnalysisCuts(0,8);
 }
 
 

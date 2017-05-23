@@ -27,6 +27,7 @@ public :
    std::vector<float> MCpileup;
    std::vector<float> datapileup;
 
+   TString pileFile;
 
 // ***********************Input Tree****************************//
 
@@ -680,14 +681,14 @@ public :
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop(int isMonteCarlo,const char*pileupfile);
+   virtual void     Loop(int isMonteCarlo);//,const char*pileupfile);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual void     BookHistos(const char* file2);
    bool to_bool(int atta);
 
-   void SetSystematics(TString run);
-   double passAnalysisCuts(TString run, int jetsystem, int phosystem);
+   void SetSystematics();
+   double passAnalysisCuts(int jetsystem, int phosystem);
    int NConstituents(int jet_index, int pdg, double pt);
    bool isPhoJetOverlap(int pho);
    bool OverlapWithElectron(double eta, double phi);
@@ -716,6 +717,7 @@ public :
 #ifdef phoJetAnalyzer_cxx
 phoJetAnalyzer::phoJetAnalyzer(const char* file1, const char* chrunner){
    gErrorIgnoreLevel = kError;
+   pileFile = file1;
    TChain *chain = new TChain("phoJetNtuplizer/eventTree");
    int runner = atoi(chrunner);
    int fileNumber = 0;
