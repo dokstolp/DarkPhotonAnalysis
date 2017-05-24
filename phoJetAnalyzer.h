@@ -42,6 +42,7 @@ public :
    int isHLT165;
    int isPrescaled;
    double TrigPhoton_pt;
+   double IDScaleFactor;
 
    double Pho_pt;
    double Pho_eta;
@@ -113,16 +114,16 @@ public :
 // ***********************Uncertainty Tree****************************//
    double Jet_JEC_u;
    double Jet_JEC_d;
-   double Jet_Res_u;
-   double Jet_Res_d;
-   double Pho_Sta_u;
-   double Pho_Sta_d;
-   double Pho_Sys_u;
-   double Pho_Sys_d;
-   double Pho_Gan_u;
-   double Pho_Gan_d;
-   double Pho_Res_u;
-   double Pho_Res_d;
+//   double Jet_Res_u;
+//   double Jet_Res_d;
+   double Pho_Scale_u;
+   double Pho_Scale_d;
+   double Pho_IDScale_u;
+   double Pho_IDScale_d;
+//   double Pho_Gan_u;
+//   double Pho_Gan_d;
+//   double Pho_Res_u;
+//   double Pho_Res_d;
 
 // ***********************Input Tree****************************//
 

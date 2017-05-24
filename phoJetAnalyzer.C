@@ -7,23 +7,18 @@
 using namespace std;
 
 int main(int argc, const char* argv[]){
-//	const char* pileupfile = argv[1];
-//	pileFile = argv[1];	
 	int isMonteCarlo = atoi(argv[2]);
 	phoJetAnalyzer t(argv[1],argv[3]);
-	t.Loop(isMonteCarlo);//,pileFile);
+	t.Loop(isMonteCarlo);
 	return 0;
 }
 
-//void phoJetAnalyzer::Loop(int isMonteCarlo, const char* pileupfile){
-void phoJetAnalyzer::Loop(int isMonteCarlo){//, const char* pileupfile){
+void phoJetAnalyzer::Loop(int isMonteCarlo){
 	bool isMC = to_bool(isMonteCarlo);
-//	TString pileFile = pileupfile;
 	if(isMC){
-		TFile *f2 = TFile::Open("/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/forPileup/data.root");
+		TFile *f2 = TFile::Open("/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/Runner/Weights/forPileup/data.root");
 		TH1F* dataPU = (TH1F*)f2->Get("histo");
-		TString dir = "/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/forPileup/";
-		//TFile *fmc = TFile::Open(dir+pileupfile+".root");
+		TString dir = "/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/Runner/Weights/forPileup/";
 		TFile *fmc = TFile::Open(dir+pileFile+".root");
 		TH1F* mcPU = (TH1F*)fmc->Get("histo");
 		for(int i=0; i<60; i++){
@@ -35,7 +30,6 @@ void phoJetAnalyzer::Loop(int isMonteCarlo){//, const char* pileupfile){
 	GenDarkPho_isPho=0;
 	GenDarkPho_isJet=0;
 	GenDarkPho_isMet=0;
-
 	Jet_JEC_u=0;
 	Jet_JEC_d=0;
 	Jet_Res_u=0;
@@ -48,7 +42,6 @@ void phoJetAnalyzer::Loop(int isMonteCarlo){//, const char* pileupfile){
 	Pho_Gan_d=0;
 	Pho_Res_u=0;
 	Pho_Res_d=0;
-
 	if (fChain == 0) return;
 	Long64_t nentries = fChain->GetEntriesFast();
 	Long64_t nbytes = 0, nb = 0;
@@ -64,6 +57,7 @@ void phoJetAnalyzer::Loop(int isMonteCarlo){//, const char* pileupfile){
 		event_weight = 1.0;
       		JetGenPho_dR=999.0;
 		isOverlap = false;
+		IDScaleFactor = 1.0;
 		TLorentzVector dp;
 		if(isMC){
 			for(int i=0;i<mcPID->size();i++){
@@ -114,6 +108,9 @@ void phoJetAnalyzer::Loop(int isMonteCarlo){//, const char* pileupfile){
                 	Jet_isTightPho = IsTightPhoton(jetpho_index,phoEt->at(jetpho_index));
 		}
 		if(pileFile.Contains("df")) JetDarkPho_dR = DeltaR(GenDarkPho_eta,jetEta->at(jet_index),GenDarkPho_phi,jetPhi->at(jet_index));
+
+		
+		if(isMC) IDScaleFactor = GetIDScaleFactor(pho_index,0);
 
 		Pho_pt  = phoEt->at(pho_index);
 		Pho_eta = phoEta->at(pho_index);
@@ -234,16 +231,18 @@ void phoJetAnalyzer::BookHistos(const char* file){
 
 	treeG->Branch("Jet_JEC_u",&Jet_JEC_u,"Jet_JEC_u/D"); 
 	treeG->Branch("Jet_JEC_d",&Jet_JEC_d,"Jet_JEC_d/D"); 
-	treeG->Branch("Jet_Res_u",&Jet_Res_u,"Jet_Res_u/D"); 
-	treeG->Branch("Jet_Res_d",&Jet_Res_d,"Jet_Res_d/D"); 
-	treeG->Branch("Pho_Sta_u",&Pho_Sta_u,"Pho_Sta_u/D"); 
-	treeG->Branch("Pho_Sta_d",&Pho_Sta_d,"Pho_Sta_d/D"); 
-	treeG->Branch("Pho_Sys_u",&Pho_Sys_u,"Pho_Sys_u/D"); 
-	treeG->Branch("Pho_Sys_d",&Pho_Sys_d,"Pho_Sys_d/D"); 
-	treeG->Branch("Pho_Gan_u",&Pho_Gan_u,"Pho_Gan_u/D"); 
-	treeG->Branch("Pho_Gan_d",&Pho_Gan_d,"Pho_gan_d/D"); 
-	treeG->Branch("Pho_Res_u",&Pho_Res_u,"Pho_Res_u/D"); 
-	treeG->Branch("Pho_Res_d",&Pho_Res_d,"Pho_Res_d/D"); 
+//	treeG->Branch("Jet_Res_u",&Jet_Res_u,"Jet_Res_u/D");
+//	treeG->Branch("Jet_Res_d",&Jet_Res_d,"Jet_Res_d/D");
+	treeG->Branch("Pho_Scale_u",&Pho_Scale_u,"Pho_Scale_u/D"); 
+	treeG->Branch("Pho_Scale_d",&Pho_Scale_d,"Pho_Scale_d/D"); 
+	treeG->Branch("Pho_IDScale_u",&Pho_IDScale_u,"Pho_IDScale_u/D"); 
+	treeG->Branch("Pho_IDScale_d",&Pho_IDScale_d,"Pho_IDScale_d/D"); 
+//	treeG->Branch("Pho_Sys_u",&Pho_Sys_u,"Pho_Sys_u/D"); 
+//	treeG->Branch("Pho_Sys_d",&Pho_Sys_d,"Pho_Sys_d/D"); 
+//	treeG->Branch("Pho_Gan_u",&Pho_Gan_u,"Pho_Gan_u/D"); 
+//	treeG->Branch("Pho_Gan_d",&Pho_Gan_d,"Pho_gan_d/D"); 
+//	treeG->Branch("Pho_Res_u",&Pho_Res_u,"Pho_Res_u/D"); 
+//	treeG->Branch("Pho_Res_d",&Pho_Res_d,"Pho_Res_d/D"); 
 
 	treeT = new TTree("Trigger","Trigger");
 	treeT->Branch("GenDarkPho_pt",&GenDarkPho_pt,"GenDarkPho_pt/D");
@@ -257,6 +256,7 @@ void phoJetAnalyzer::BookHistos(const char* file){
 	treeT->Branch("VertZ",&VertZ,"VertZ/D");
 
 }
+
 
 bool phoJetAnalyzer::MediumPhotonIdDecision(int &pho_index){
 	bool mediumPhotonID=false;
@@ -545,36 +545,42 @@ double phoJetAnalyzer::EAElectronphoton(double eta){
 }
 
 
-double phoJetAnalyzer::passAnalysisCuts(int jetsystem, int phosystem){
+double phoJetAnalyzer::passAnalysisCuts(int jetsystem, int phosystem, int idadj){
 	double rets = 0.0;
-	double temp_dR = 99999.9;
+//	double temp_dR = 99999.9;
 	bool isOverlap=false;
 	for(int i=0; i< phoEt->size()  ;i++) {
 		double phoScale [] = {1.0
-				      ,phoScale_stat_up->at(i)
-				      ,phoScale_stat_dn->at(i)
+				      ,TMath::Sqrt(phoScale_stat_up->at(i)*phoScale_stat_up->at(i)
+				      			+phoScale_syst_up->at(i)*phoScale_syst_up->at(i)
+							+phoScale_gain_up->at(i)*phoScale_gain_up->at(i))
+				      ,TMath::Sqrt(phoScale_stat_dn->at(i)*phoScale_stat_dn->at(i)
+				      			+phoScale_syst_dn->at(i)*phoScale_syst_dn->at(i)
+							+phoScale_gain_dn->at(i)*phoScale_gain_dn->at(i))}
+/*				      ,phoScale_stat_dn->at(i)
 				      ,phoScale_syst_up->at(i)
 				      ,phoScale_syst_dn->at(i)
 				      ,phoScale_gain_up->at(i)
 				      ,phoScale_gain_dn->at(i)
 				      ,phoResol_rho_up->at(i)
 				      ,phoResol_rho_dn->at(i)};
-		if(IsMediumPhoton(i,phoEt->at(i)*phoScale[phosystem]) 
+*/
+		if(IsMediumPhoton(i,phoEt->at(i)*phoScale[phosystem])
 		   && (phoEt->at(i)*phoScale[phosystem])>=175 
 		   && fabs(phoEta->at(i))<1.4442){
 			for(int j=0;j<jetPt->size();j++){
 				double jetScale [] = {1.0
 						      ,1+jetJECUnc->at(j)
-						      ,1-jetJECUnc->at(j)
-						      ,jetP4SmearUp->at(j)
-						      ,jetP4SmearDo->at(j)};
+						      ,1-jetJECUnc->at(j)};
+//						      ,jetP4SmearUp->at(j)
+//						      ,jetP4SmearDo->at(j)};
 				if(!OverlapWithMuon(jetEta->at(j),jetPhi->at(j)) 
 				   && !OverlapWithElectron(jetEta->at(j),jetPhi->at(j)) 
 				   && DeltaR(jetEta->at(j),phoEta->at(i),jetPhi->at(j),phoPhi->at(i)) > 0.5
 				   && (jetPt->at(j)*jetScale[jetsystem])>=170.0 && fabs(jetEta->at(j))<2.4){
-					if(NConstituents(j,211,10.)<3)
-					if(pileFile.Contains("qcd")) isOverlap = isPhoJetOverlap(i);
-					for(int k=0;k<mcPID->size();k++){
+					if(NConstituents(j,211,10.)<3){
+						if(pileFile.Contains("qcd")) isOverlap = isPhoJetOverlap(i);
+/*					for(int k=0;k<mcPID->size();k++){
 						if(mcPID->at(i) == 22 && mcStatus->at(i) == 1 && mcPt->at(i) > 100){
 							double delR = DeltaR(mcEta->at(k)
 										,jetEta->at(j)
@@ -583,9 +589,11 @@ double phoJetAnalyzer::passAnalysisCuts(int jetsystem, int phosystem){
 							if(temp_dR>delR) temp_dR=delR;
 						}
 					}
-					rets = event_weight*(!isOverlap);
-					if(pileFile=="dipho") rets = (!isOverlap)*event_weight*(temp_dR<0.1);
-					if(rets>0) return rets;
+*/
+						rets = GetIDScaleFactor(i,idadj)*event_weight*(!isOverlap)*neg_weight;
+//					if(pileFile=="dipho") rets = (!isOverlap)*event_weight*(temp_dR<0.1);
+						if(rets>0) return rets;
+					}
 				}
 			}
 		}
@@ -594,18 +602,22 @@ double phoJetAnalyzer::passAnalysisCuts(int jetsystem, int phosystem){
 }
 
 void phoJetAnalyzer::SetSystematics(){
-	Jet_JEC_u += passAnalysisCuts(1,0);
-	Jet_JEC_d += passAnalysisCuts(2,0);
-	Jet_Res_u += passAnalysisCuts(3,0);
-	Jet_Res_d += passAnalysisCuts(4,0);
-	Pho_Sta_u += passAnalysisCuts(0,1);
-	Pho_Sta_d += passAnalysisCuts(0,2);
-	Pho_Sys_u += passAnalysisCuts(0,3);
-	Pho_Sys_d += passAnalysisCuts(0,4);
-	Pho_Gan_u += passAnalysisCuts(0,5);
-	Pho_Gan_d += passAnalysisCuts(0,6);
-	Pho_Res_u += passAnalysisCuts(0,7);
-	Pho_Res_d += passAnalysisCuts(0,8);
+	Jet_JEC_u += passAnalysisCuts(1,0,0);
+	Jet_JEC_d += passAnalysisCuts(2,0,0);
+	Pho_Scale_u += passAnalysisCuts(0,1,0);
+	Pho_Scale_d += passAnalysisCuts(0,2,0);
+	Pho_IDScale_u += passAnalysisCuts(0,0,1);
+	Pho_IDScale_d += passAnalysisCuts(0,0,-1);
 }
+
+double phoJetAnalyzer::GetIDScaleFactor(int pho_index,double adj){
+	TFile *SFfile = TFile::Open("/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/Runner/Weights/ScaleFactors/egammaEffi.txt_EGM2D.root");
+	TH2F* scaleFact = (TH2F*)SFfile->Get("EGamma_SF2D");
+	int x_val = scaleFact->GetXaxis()->FindBin(phoEta->at(pho_index));
+	double Scale = scaleFact->GetBinContent(x_val,5) + adj*scaleFact->GetBinError(x_val,5);
+	return Scale;
+}
+	
+
 
 
