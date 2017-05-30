@@ -7,6 +7,6 @@ The analyzer requires:
 4. Signal k-factor plot.
 
 To run:
-./phoJetAnalyzer <SampleName> <isMonteCarlo (1 for yes, 0 for no)> <iterator>
+./phoJetAnalyzer SampleName isMonteCarlo(1 for yes, 0 for no) iterator 
 
 The iterator determines which files to run over as determined by line 771 of phoJetAnalyzer.h. By running all values of the iterator, one can analyze the entire dataset. The anlayzer breaks the dataset up into 20 files.
