@@ -1,5 +1,6 @@
 import plot_thesis
 
+#For summing the event yields with applied systematic uncertainties
 def systematic():
 	for tre in List:
 		Nominal = 0

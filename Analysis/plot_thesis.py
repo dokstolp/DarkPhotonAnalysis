@@ -1,27 +1,33 @@
 from ROOT import TCanvas, TFile, TH1F, TF1, TPad, TLegend, TGraph, TAxis, TMultiGraph, THStack, TColor, TH1D, TLatex, gROOT, gBenchmark, gRandom, gSystem, Double, gPad, gStyle, TGraphErrors, TH2F, TH2D, TPie
 from LoadData import *
-#from plot_fun import *
 from plot_variables import *
 from array import array
-import scipy
 
-vari = [Jet_NJets,Pho_phi,Pho_eta,Jet_phi,Jet_eta,Pho_pt,Jet_pt]
-vari = [Jet_NchargedHad1,Jet_NchargedHad5,Jet_NchargedHad7,Jet_NchargedHad10,Jet_NneutralHad1,Jet_NneutralHad5,Jet_NneutralHad7,Jet_NneutralHad10,Jet_Ngamma1,Jet_Ngamma5,Jet_Ngamma7,Jet_Ngamma10]
-vari = [Jet_CEF,Jet_CHF,Jet_NConst,Jet_n60,Jet_n90,Jet_ptDist,Jet_etaWidthInECal,Jet_phiWidthInECal,Jet_etaWidthInHCal,Jet_phiWidthInHCal]
-cuts = {'noCuts-DiScale':"(neg_weight*event_weight*(isOverlap==0))"}
+#Plotter for figures in my thesis
+
+#vari = [nJets,Pho_phi,Pho_eta,Jet_phi,Jet_eta,Pho_pt,Jet_pt]
+vari = [Jet_NChargedHad1,Jet_NChargedHad5,Jet_NChargedHad10,Jet_NChargedHad20,Jet_NNeutralHad1,Jet_NNeutralHad5,Jet_NNeutralHad10,Jet_NNeutralHad20,Jet_NPhoton1,Jet_NPhoton5,Jet_NPhoton10,Jet_NPhoton20]
+#vari = [Jet_CEF,Jet_CHF,Jet_NConst,Jet_n60,Jet_n90,Jet_ptDist,Jet_etaWidth,Jet_phiWidth]#,Jet_etaWidthInHCal,Jet_phiWidthInHCal]
+cuts = {'noCuts':"(event_weight*(isOverlap==0)*kfactor*IDScaleFactor)"}
 
 def trigger(nbins,low,high):
-	dataFile = TFile("../anaRoots/data.root","OPEN")
-	treeTrig = dataFile.Get("Trigger")
-	cutter = cuts[region]
+#	dataFile = TFile("../anaRoots/data.root","OPEN")
+#	treeTrig = dataFile.Get("Trigger")
+#	cutter = cuts[region]
 	can = TCanvas("can","can",1000,900)
-	can.SetBottomMargin(0.3)
-	can.SetRightMargin(0.06)
+#	can.SetBottomMargin(0.3)
+#	can.SetRightMargin(0.06)
 	gStyle.SetOptStat(0)
-	histNumerator = TH1F('histNumerator',";Photon p_T [GeV];Efficiency",nbins,low,high)
-	treeTrig.Draw('TrigPhoton_pt>>histNumerator','(isHLT165==1) && (isPrescaled==1)')
-	histDenominator = TH1F('histDenominator',";Photon p_T [GeV];Efficiency",nbins,low,high)
-	treeTrig.Draw('TrigPhoton_pt>>histDenominator','(isPrescaled==1)')
+	histNumerator = TH1F('histNumerator',";Photon p_{T} [GeV];Efficiency",nbins,low,high)
+	treeTrig['Data'].Draw('TrigPhoton_pt>>histNumerator','((isHLT165==1) && (isPrescaled==1))')
+#	treeTrig['Data'].Draw('TrigPhoton_pt>>histNumerator','((isHLT165==True))')
+	histDenominator = TH1F('histDenominator',";Photon p_{T} [GeV];Efficiency",nbins,low,high)
+	treeTrig['Data'].Draw('TrigPhoton_pt>>histDenominator','(isPrescaled==1)')
+	histNumerator.Sumw2()
+	histDenominator.Sumw2()
+	histNumerator.SetMaximum(1.1)
+	print histNumerator.Integral()
+	print histDenominator.Integral()
 	histNumerator.Divide(histDenominator)
 	histNumerator.Draw('e1')
 	latex2 = TLatex()
@@ -33,15 +39,17 @@ def trigger(nbins,low,high):
 	can.Close()
 
 def piePlot():
-	darknames = {'df1en0':'f_D = 1E0','df1en1':'f_D = 1E-1','df1en2':'f_D = 1E-2','df1en3':'f_D = 1E-3'}
-	colors = [2,4,6]
+	gStyle.SetTitleSize(0.1,'t')
+	darknames = {'df1en0':'Dark Factor = 1E0','df1en1':'Dark Factor = 1E-1','df1en2':'Dark Factor = 1E-2','df1en3':'Dark Factor = 1E-3'}
+	recocolors = [2,4,6]
 	labels = ['Photon','Jet','MET']
-	can = TCanvas('can','can')
-	can.Divide(1,4)
+#	can.Divide(2,2)
 	iter = 1
 	pie = {}
 	for tre in darkFactors:
-		can.cd(iter)
+		can = TCanvas('can','can',1000,500)
+		can.SetLeftMargin(1)
+		can.SetRightMargin(1)
 		GenDarkPhoisPho = 0
 		GenDarkPhoisJet = 0
 		GenDarkPhoisMet = 0
@@ -50,22 +58,33 @@ def piePlot():
 			GenDarkPhoisJet+=event.GenDarkPho_isJet
 			GenDarkPhoisMet+=event.GenDarkPho_isMet
 		vals = [GenDarkPhoisPho,GenDarkPhoisJet,GenDarkPhoisMet]
-		pie[tre] = TPie('pie',darknames[tre],3,scipy.array(vals),scipy.array(colors))
-		pie[tre].SetLabels(labels)
+#		print scipy.array(vals)
+#		print scipy.array(recocolors)
+		pie[tre] = TPie('pie',darknames[tre],3,array('d',vals),array('i',recocolors))
+#		pie[tre] = TPie('pie',darknames[tre],3,scipy.array(vals),scipy.array(colors))
+#		pie[tre].SetLabels(labels)
+		pie[tre].SetEntryLabel(0,"Photon")
+		pie[tre].SetEntryLabel(1,"Jet")
+		pie[tre].SetEntryLabel(2,"MET")
 		pie[tre].Draw("3d")
+		can.SaveAs('plots/pieChart_'+tre+'.pdf')
+		can.Close()	
 		iter+=1
-	can.SaveAs('plots/pieChart.pdf')	
 
 def interactionLocation():
+	darknames = {'df1en0':'Dark Factor = 1E0','df1en1':'Dark Factor = 1E-1','df1en2':'Dark Factor = 1E-2','df1en3':'Dark Factor = 1E-3'}
         can3 = {}
+	Variables = {}
         for tre in darkFactors:
                 can = TCanvas(tre,"can",1000,900)
-                histo = TH2F('histo',"f_D = "+str(darks[tre])+";#gamma_D Interaction Z [cm];#gamma_D Interaction r [cm]",30,0,600,30,0,300)
-                treepj[tre].Draw("darkRadius:fabs(darkZ)>>histo",weight)
-                Variables[tre].Scale(lumi*crossx[tre]*kFact[tre]/Nevents[tre])
+		gStyle.SetOptStat(0)
+		can.SetRightMargin(0.2)
+                histo = TH2F('histo',str(darknames[tre])+";#gamma_{D} Interaction Z [cm];#gamma_{D} Interaction r [cm]",30,0,600,30,0,300)
+                treeTrig[tre].Draw("VertR:fabs(VertZ)>>histo")
+                histo.Scale(lumi*crossx[tre]*kFact[tre]/Nevents[tre])
 #                scale = 100.0/Variables[tre].Integral(0,xnbin+1,0,ynbin+1)
-                Variables[tre].Scale(scale)
-                Variables[tre].Draw("COLZ")
+#                histo.Scale(scale)
+                histo.Draw("COLZ")
                 can.SaveAs("plots/Signal_"+tre+"-2D.pdf")
 
 
@@ -145,7 +164,7 @@ def pileup(isCorr):
 	scalable = qcd.Integral()
 	qcd.Scale(1/scalable)
 	data = TH1D('data','',60,0,60)
-	dataFi = TFile("/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/Runner/Weights/forPileup/data.root","OPEN")
+	dataFi = TFile("/uscms_data/d3/dokstolp/darkphoton/13TeV/Analysis/CMSSW_8_0_18_patch1/src/Runner/Weights/forPileup/Data.root","OPEN")
 	data = dataFi.Get("hist")
 	scalar = data.Integral()
 	data.Scale(1/scalar)
@@ -189,29 +208,29 @@ def aXe():
         VariablesDen = {}
         treeG = {}
         for tre in darkFactors:
-                treeG[tre] = darkFiles[tre].Get("darkGens")
+#                treeG[tre] = darkFiles[tre].Get("darkGens")
                 VariablesNum[tre] = TH1F(tre+"-num",";Dark Photon Pt [GeV];Acceptance x Efficiency",26,150,800)
                 VariablesDen[tre] = TH1F(tre+"-den",";Dark Photon Pt [GeV];Acceptance x Efficiency",26,150,800)
                 VariablesNum[tre].SetLineColor(colors[tre])
                 VariablesNum[tre].SetLineWidth(2)
                 treepj[tre].Draw("GenDarkPho_pt>>"+tre+"-num")
-                treeG[tre].Draw("GenDarkPho_pt>>"+tre+"-den")
+                treeTrig[tre].Draw("GenDarkPho_pt>>"+tre+"-den")
                 VariablesNum[tre].Sumw2()
                 VariablesDen[tre].Sumw2()
                 VariablesNum[tre].Divide(VariablesDen[tre])
-		VariablesNum[tre].SetMaximum(5.0)
+		VariablesNum[tre].SetMaximum(10.0)
         VariablesNum['df1en0'].Draw('e1')
         VariablesNum['df1en1'].Draw('e1same')
         VariablesNum['df1en2'].Draw('e1same')
         VariablesNum['df1en3'].Draw('e1same')
         led = TLegend(0.6, 0.6, 0.9, 0.9)
-        led.AddEntry(VariablesNum['df1en0'],"f_D = 1E0")
-        led.AddEntry(VariablesNum['df1en1'],"f_D = 1E-1}")
-        led.AddEntry(VariablesNum['df1en2'],"f_D = 1E-2}")
-        led.AddEntry(VariablesNum['df1en3'],"f_D = 1E-3}")
+        led.AddEntry(VariablesNum['df1en0'],"f_{D} = 1E0")
+        led.AddEntry(VariablesNum['df1en1'],"f_{D} = 1E-1")
+        led.AddEntry(VariablesNum['df1en2'],"f_{D} = 1E-2")
+        led.AddEntry(VariablesNum['df1en3'],"f_{D} = 1E-3")
         led.SetFillColor(0)
         led.Draw("same")
-        can.SaveAs("plots/aXe-"+region+".pdf")
+        can.SaveAs("plots/aXe.pdf")
 
 
 def noPull(var,title,xtitle,nbin,low,high,region):
@@ -235,8 +254,8 @@ def noPull(var,title,xtitle,nbin,low,high,region):
 	for tre in List:
 		histName = var+tre
 		Variables[tre] = TH1F(histName,";"+xtitle+";"+"Events",nbin,low,high)
-		if tre == "dipho":
-			weight = cutter+"&& (JetPho_dR<0.1)"
+#		if tre == "dipho":
+#			weight = cutter+"&& (JetPho_dR<0.1)"
 		treepj[tre].Draw(var+">>"+histName,weight)
 		Variables[tre].Sumw2()
 		scalable = lumi*crossx[tre]*kFact[tre]/Nevents[tre]
@@ -244,21 +263,21 @@ def noPull(var,title,xtitle,nbin,low,high,region):
 		if tre.startswith("df"):
 			Variables[tre].SetLineColor(colors[tre])
 			Variables[tre].SetLineWidth(3)
-		if tre.startswith("pj"):
+		if tre.startswith("GJets"):
 			backs.Add(Variables[tre])
 			phojet.Add(Variables[tre])
-		if tre.startswith("qcd"):
+		if tre.startswith("QCD"):
 			backs.Add(Variables[tre])
 			qcd.Add(Variables[tre])
-		if tre.startswith("dipho"):
+		if tre.startswith("DiPhoton"):
 			Variables[tre].SetFillColor(3)
 			Variables[tre].SetLineColor(3)
 			backs.Add(Variables[tre])
-	Variables['data'] = TH1F('data',";"+xtitle+";"+"Events",nbin,low,high)
-	treepj['data'].Draw(var+">>data",cutter,"goff")
-	Variables['data'].SetLineColor(1)
-	Variables['data'].SetLineWidth(2)
-	stack.Add(Variables['dipho'])
+	Variables['Data'] = TH1F('Data',";"+xtitle+";"+"Events",nbin,low,high)
+	treepj['Data'].Draw(var+">>Data",cutter,"goff")
+	Variables['Data'].SetLineColor(1)
+	Variables['Data'].SetLineWidth(2)
+	stack.Add(Variables['DiPhoton'])
 	stack.Add(qcd)
 	stack.Add(phojet)		
 	stack.SetMaximum(1000000.0)
@@ -266,7 +285,7 @@ def noPull(var,title,xtitle,nbin,low,high,region):
 	stack.Draw("hist")
 	stack.GetXaxis().SetLabelSize(0)
 	backs.Draw("e2same")
-	Variables['data'].Draw("e1same")	
+	Variables['Data'].Draw("e1same")	
 	Variables['df1en0'].Draw("histsame")		
 	Variables['df1en1'].Draw("histsame")		
 	Variables['df1en2'].Draw("histsame")		
@@ -279,12 +298,12 @@ def noPull(var,title,xtitle,nbin,low,high,region):
 	led = TLegend(0.7, 0.7, 0.94, 0.9)
 	led.AddEntry(phojet,"#gamma + Jet",'f')
 	led.AddEntry(qcd,"QCD DiJet",'f')
-	led.AddEntry(Variables['dipho'],"#gamma + #gamma",'f')
-	led.AddEntry(Variables['df1en0'],"f_D = 1E0}")
-	led.AddEntry(Variables['df1en1'],"f_D = 1E-1}")
-	led.AddEntry(Variables['df1en2'],"f_D = 1E-2}")
-	led.AddEntry(Variables['df1en3'],"f_D = 1E-3}")
-	led.AddEntry(Variables['data'],"Data")
+	led.AddEntry(Variables['DiPhoton'],"#gamma + #gamma",'f')
+	led.AddEntry(Variables['df1en0'],"f_{D} = 1E0")
+	led.AddEntry(Variables['df1en1'],"f_{D} = 1E-1")
+	led.AddEntry(Variables['df1en2'],"f_{D} = 1E-2")
+	led.AddEntry(Variables['df1en3'],"f_{D} = 1E-3")
+	led.AddEntry(Variables['Data'],"Data")
 	led.SetFillColor(0)
 	led.Draw("same")
 	can.SaveAs("plots/noPull"+region+"-"+var+".pdf")
@@ -316,8 +335,8 @@ def thresholds(var,title,xtitle,nbin,low,high,region):
 	for tre in List:
 		histName = var+tre
 		Variables[tre] = TH1F(histName,";"+xtitle+";"+"Events",nbin,low,high)
-		if tre == "dipho":
-			weight = cutter+"&& (JetPho_dR<0.1)"
+#		if tre == "dipho":
+#			weight = cutter+"&& (JetPho_dR<0.1)"
 		treepj[tre].Draw(var+">>"+histName,weight)
 		Variables[tre].Sumw2()
 		scalable = lumi*crossx[tre]*kFact[tre]/Nevents[tre]
@@ -325,21 +344,21 @@ def thresholds(var,title,xtitle,nbin,low,high,region):
 		if tre.startswith("df"):
 			Variables[tre].SetLineColor(colors[tre])
 			Variables[tre].SetLineWidth(3)
-		if tre.startswith("pj"):
+		if tre.startswith("GJets"):
 			backs.Add(Variables[tre])
 			phojet.Add(Variables[tre])
-		if tre.startswith("qcd"):
+		if tre.startswith("QCD"):
 			backs.Add(Variables[tre])
 			qcd.Add(Variables[tre])
-		if tre.startswith("dipho"):
+		if tre.startswith("DiPhoton"):
 			Variables[tre].SetFillColor(3)
 			Variables[tre].SetLineColor(3)
 			backs.Add(Variables[tre])
-	Variables['data'] = TH1F('data',";"+xtitle+";"+"Events",nbin,low,high)
-	treepj['data'].Draw(var+">>data",cutter,"goff")
-	Variables['data'].SetLineColor(1)
-	Variables['data'].SetLineWidth(2)
-	stack.Add(Variables['dipho'])
+	Variables['Data'] = TH1F('data',";"+xtitle+";"+"Events",nbin,low,high)
+	treepj['Data'].Draw(var+">>data",cutter,"goff")
+	Variables['Data'].SetLineColor(1)
+	Variables['Data'].SetLineWidth(2)
+	stack.Add(Variables['DiPhoton'])
 	stack.Add(qcd)
 	stack.Add(phojet)		
 	stack.SetMaximum(1000000.0)
@@ -347,7 +366,7 @@ def thresholds(var,title,xtitle,nbin,low,high,region):
 	stack.Draw("hist")
 	stack.GetXaxis().SetLabelSize(0)
 	backs.Draw("e2same")
-	Variables['data'].Draw("e1same")	
+	Variables['Data'].Draw("e1same")	
 	Variables['df1en0'].Draw("histsame")		
 	Variables['df1en1'].Draw("histsame")		
 	Variables['df1en2'].Draw("histsame")		
@@ -361,7 +380,7 @@ def thresholds(var,title,xtitle,nbin,low,high,region):
 	pad.cd(0)
 	pad.SetRightMargin(0.06)
 	Pull  = TH1D('Pull', 'Pull', nbin, low, high)
-	Pull = Variables['data'].Clone()
+	Pull = Variables['Data'].Clone()
 	Pull.Divide(backs)
 	Pull.SetMarkerStyle(20)
 	Pull.SetMaximum(2.0)
@@ -385,15 +404,26 @@ def thresholds(var,title,xtitle,nbin,low,high,region):
 	led = TLegend(0.7, 0.7, 0.94, 0.9)
 	led.AddEntry(phojet,"#gamma + Jet",'f')
 	led.AddEntry(qcd,"QCD DiJet",'f')
-	led.AddEntry(Variables['dipho'],"#gamma + #gamma",'f')
-	led.AddEntry(Variables['df1en0'],"f_D = 1E0")
-	led.AddEntry(Variables['df1en1'],"f_D = 1E-1")
-	led.AddEntry(Variables['df1en2'],"f_D = 1E-2")
-	led.AddEntry(Variables['df1en3'],"f_D = 1E-3")
-	led.AddEntry(Variables['data'],"Data")
+	led.AddEntry(Variables['DiPhoton'],"#gamma + #gamma",'f')
+	led.AddEntry(Variables['df1en0'],"f_{D} = 1E0")
+	led.AddEntry(Variables['df1en1'],"f_{D} = 1E-1")
+	led.AddEntry(Variables['df1en2'],"f_{D} = 1E-2")
+	led.AddEntry(Variables['df1en3'],"f_{D} = 1E-3")
+	led.AddEntry(Variables['Data'],"Data")
 	led.SetFillColor(0)
 	led.Draw("same")
 	can.SaveAs("plots/"+region+"-"+var+".pdf")
 	can.Close()
 	phojet.Delete()
 	qcd.Delete()
+
+#trigger(40,0,400)
+#piePlot()
+#interactionLocation()
+#pileup(False)
+#aXe()
+for var in vari:
+	for cal in cuts:
+		thresholds(var[0],var[1],var[2],var[3],var[4],var[5],cal)
+#		noPull(var[0],var[1],var[2],var[3],var[4],var[5],cal)
+

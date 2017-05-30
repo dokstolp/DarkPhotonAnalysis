@@ -12,6 +12,7 @@
 #include <TChain.h>
 #include <TFile.h>
 #include <TH1F.h>
+#include <TH2F.h>
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -27,7 +28,16 @@ public :
    std::vector<float> MCpileup;
    std::vector<float> datapileup;
 
+   TLorentzVector newJet;
+
+   TFile *Kfac;
+   TFile *Sfac;
+   TH1F *kfacHist;
+   TH2F *scaleHist;
+
    TString pileFile;
+   bool isMC;
+
 
 // ***********************Input Tree****************************//
 
@@ -43,6 +53,7 @@ public :
    int isPrescaled;
    double TrigPhoton_pt;
    double IDScaleFactor;
+   int NVerts;
 
    double Pho_pt;
    double Pho_eta;
@@ -111,6 +122,42 @@ public :
    double VertR; 
    double VertZ; 
 
+   double kfactor;
+
+   int Jet_NChargedHad0;
+   int Jet_NNeutralHad0;
+   int Jet_NPhoton0;    
+   int Jet_NChargedHad1;
+   int Jet_NNeutralHad1;
+   int Jet_NPhoton1;   
+   int Jet_NChargedHad2;
+   int Jet_NNeutralHad2;
+   int Jet_NPhoton2;   
+   int Jet_NChargedHad5;
+   int Jet_NNeutralHad5;
+   int Jet_NPhoton5;     
+   int Jet_NConstituents0;
+   int Jet_NConstituents1;
+   int Jet_NConstituents2;
+   int Jet_NConstituents5;
+   int Jet_NConstituents10;
+   int Jet_NConstituents20;
+   int Jet_NConstituents50;
+   int Jet_NConstituents100;
+   int Jet_NConstituents120;
+   int Jet_NConstituents140;
+   int Jet_NConstituents150;
+   int Jet_NConstituents160;
+   int Jet_NConstituents170;
+
+   int Jet_NConst70;
+   int Jet_NConst80;
+   int Jet_NConst82;
+   int Jet_NConst85;
+   int Jet_NConst87;
+   int Jet_NConst90;
+   int Jet_NConst95;
+
 // ***********************Uncertainty Tree****************************//
    double Jet_JEC_u;
    double Jet_JEC_d;
@@ -120,6 +167,8 @@ public :
    double Pho_Scale_d;
    double Pho_IDScale_u;
    double Pho_IDScale_d;
+   double Sig_kfac_u;
+   double Sig_kfac_d;
 //   double Pho_Gan_u;
 //   double Pho_Gan_d;
 //   double Pho_Res_u;
@@ -676,25 +725,28 @@ public :
    TBranch        *b_vertr;   //!
    TBranch        *b_vertz;   //!
 
-   phoJetAnalyzer(const char* file1, const char* runner);
+   phoJetAnalyzer(const char* file1, const char* runner, const char* boolMC);
    virtual ~phoJetAnalyzer();
    virtual Int_t    Cut(Long64_t entry);
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t LoadTree(Long64_t entry);
    virtual void     Init(TTree *tree);
-   virtual void     Loop(int isMonteCarlo);//,const char*pileupfile);
+   virtual void     Loop();//,const char*pileupfile);
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
    virtual void     BookHistos(const char* file2);
    bool to_bool(int atta);
 
+   double GetKFactor(double pt,double adj);
+   double GetIDScaleFactor(int pho_index,double adj);
    void SetSystematics();
-   double passAnalysisCuts(int jetsystem, int phosystem);
+   double passAnalysisCuts(int jetsystem, int phosystem, int idadj, int kfactadj);
    int NConstituents(int jet_index, int pdg, double pt);
-   bool isPhoJetOverlap(int pho);
+   int isPhoJetOverlap(int pho);
    bool OverlapWithElectron(double eta, double phi);
    bool OverlapWithMuon(double eta, double phi);
    double DeltaR(double eta1, double eta2, double phi1,double phi2);
+   double JetSmearPt(int jet_index,int isSmear);
    double DeltaPhi(double phi1,double phi2);
    bool MediumPhotonIdDecision(int &pho_index);
    void JetIsPhoton(int jet_index,int &jetpho_index);
@@ -703,7 +755,7 @@ public :
    bool IsTightPhoton(int &pho_index,double pt);
    bool IsPixelPhoton(int &pho_index,double pt);
    bool VertexDecision(int &foundVertex);
-   int JetDecision(int &pho_index, int &jet_index);
+   int JetDecision(int &pho_index, int &jet_index,double &jetPtSmear);
    void DarkPhotonType(double eta, double phi, int &isPho, int &isJet, int &isMet);
    double  EAElectroncharged(double eta);
    double  EAPFWorstElectroncharged(double eta);
@@ -716,9 +768,10 @@ public :
 #endif
 
 #ifdef phoJetAnalyzer_cxx
-phoJetAnalyzer::phoJetAnalyzer(const char* file1, const char* chrunner){
+phoJetAnalyzer::phoJetAnalyzer(const char* file1, const char* boolMC, const char* chrunner){
    gErrorIgnoreLevel = kError;
    pileFile = file1;
+   isMC = to_bool(atoi(boolMC));
    TChain *chain = new TChain("phoJetNtuplizer/eventTree");
    int runner = atoi(chrunner);
    int fileNumber = 0;
@@ -737,7 +790,7 @@ phoJetAnalyzer::phoJetAnalyzer(const char* file1, const char* chrunner){
                 chain->Add(FullPathInputFile);
                 std::cout<<chain->GetEntries()<<std::endl;
         }
-        if(fileNumber%20==0) runNumber++;
+	if(fileNumber%20==0) runNumber++;
         fileNumber++;
    }
    cout<<runNumber<<endl;
